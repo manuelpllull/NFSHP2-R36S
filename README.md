@@ -2,7 +2,7 @@
 
 An unofficial native port of the PlayStation 2 version of **Need for Speed: Hot Pursuit 2** (2002) to Linux handhelds (R36S, Anbernic RG35XX/RG34XX, Powkiddy, RK3326, Allwinner H700, and other PortMaster-compatible devices), with continued support for the New Nintendo 3DS.
 
-It is the PS2 game itself, not an emulator or a remake: the code was reverse-engineered function-by-function from the retail PAL disc (`SLES-50731`) and reimplemented in C. It runs from your own disc's assets, which you install on the device. **No proprietary game data is distributed with this repository.**
+It is the PS2 game itself, not an emulator or a remake: the code was reverse-engineered function-by-function from the retail PAL disc (`SLES-50731`) and reimplemented in C. It runs from your own disc's assets, which you install on the device. Every PS2 release is supported: USA SLUS-20362, Europe SLES-50731 (v1.00 or v2.00), Asia SLPM-65181 or Korea SLPM-67527 (see [docs/releases.md](docs/releases.md)). **No proprietary game data is distributed with this repository.**
 
 ---
 
@@ -34,7 +34,7 @@ It is the PS2 game itself, not an emulator or a remake: the code was reverse-eng
 ### Method A: Automated On-Device Installation from ISO (Recommended)
 
 1. Copy the PortMaster package (`NFSHP2.sh` and the `nfshp2/` directory) to your SD card's `ports/` directory (e.g. `roms/ports/` or `ports/`).
-2. Copy your PAL PS2 disc ISO image (`SLES-50731`) to:
+2. Copy your PS2 disc ISO image (USA `SLUS-20362`, Europe `SLES-50731` v1.00 or v2.00, Asia `SLPM-65181` or Korea `SLPM-67527`) to:
    ```
    ports/nfshp2/gamedata/your_disc.iso
    ```
@@ -47,7 +47,7 @@ It is the PS2 game itself, not an emulator or a remake: the code was reverse-eng
 
 If your device firmware does not have `python3`, or you prefer faster extraction:
 
-1. Copy `ZDIR.BIN` and `ZZDATA.BIN` from your PAL disc's `NFSHP2/` folder into `PS2 Files/Full Game/`.
+1. Copy `ZDIR.BIN` and `ZZDATA.BIN` from your disc's `NFSHP2/` folder into `PS2 Files/Full Game/`. The extraction keeps `PAL.TAG`, which only the European discs have, and `make_card.py` writes `RELEASE.TXT` with PAL or NTSC from it.
 2. From the repository root on your computer (requires Python 3.8+):
    ```bash
    python tools/zdir_extract.py --retail --decompress
@@ -109,6 +109,7 @@ You can customize the port by creating or editing `ports/nfshp2/nfshp2.cfg` with
 | `NFSHP2_ASPECT` | `0` or `1` | `1` | `1` stretches view to screen edges; `0` forces pillarboxed 4:3 PS2 ratio |
 | `NFSHP2_DPAD_STICK` | `0` or `1` | `0` | Launch with D-Pad and Left Analog Stick steering swapped |
 | `NFSHP2_GLYPHS` | `ps2`, `xbox`, `nintendo` | `nintendo` | Button prompt glyph style on screen |
+| `NFSHP2_REGION` | `PAL` or `NTSC` | the disc's | Overrides the disc's video mode: `PAL` gives the language choice at every start and the Languages item in Options; `NTSC` plays in English without them |
 | `NFSHP2_RENDER_SCALE` | `0.25` to `1.0` | `1.0` | Render target scale factor (e.g. `0.75` for 75% internal resolution) |
 
 ---

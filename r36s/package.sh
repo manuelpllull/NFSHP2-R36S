@@ -35,7 +35,7 @@ cp "$here/portmaster/gamedata.txt" "$port/nfshp2/gamedata/README.txt"
 # and name list it does the work with.
 mkdir -p "$port/nfshp2/tools"
 cp "$here/installer/patchscript" "$here/installer/nfshp2_install.py" "$port/nfshp2/tools/"
-for f in zdir_extract.py bhash.py lzdecompress.py audio_pack.py audio_convert.py; do
+for f in zdir_extract.py bhash.py lzdecompress.py audio_pack.py audio_convert.py release.py; do
     cp "$repo/tools/$f" "$port/nfshp2/tools/$f"
 done
 cp "$repo/docs/zdir_names_retail.txt" "$port/nfshp2/tools/"

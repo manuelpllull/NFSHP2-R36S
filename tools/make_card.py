@@ -12,9 +12,12 @@ copies it to <dest>/NFSHP2, leaving out:
   (8.8 MB on track 11) besides the bundle it expands into.
 - The sound banks' .MSH, .MSB and .RAW, which audio_pack.py's .SBK replace.
 - What the game never opens: the entries the disc's directory has no name
-  for (unknown/), the extractor's manifest.csv, KEY.TXT, NFS6.ICO, PAL.TAG
-  (gameflow.c sets the PAL mode itself), MARKERS/, NIS/ and the
-  REPLAY/MAY31 replays (the attract mode's are JUL23's).
+  for (unknown/), the extractor's manifest.csv, KEY.TXT, NFS6.ICO,
+  MARKERS/, NIS/ and the REPLAY/MAY31 replays (the attract mode's are
+  JUL23's).
+
+PAL.TAG, which only the European discs have, is copied: the game reads it
+for PAL or NTSC, as the PS2 does. RELEASE.TXT says which (tools/release.py).
 
 That is the set the Azahar card was tested with, plus the EA logo in the
 other five languages, which are the same MV30 movie as the English one.
@@ -42,12 +45,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 from zdir_extract import misnamed  # noqa: E402
+import release  # noqa: E402
 
 # Upper-case paths relative to extracted-retail/, '/' between parts.
 LEAVE_OUT = [
     "TRACKS/TRACKB*.LZC",
     "*.MSH", "*.MSB", "*.RAW",
-    "UNKNOWN/*", "MANIFEST.CSV", "KEY.TXT", "NFS6.ICO", "PAL.TAG",
+    "UNKNOWN/*", "MANIFEST.CSV", "KEY.TXT", "NFS6.ICO",
     "MARKERS/*", "NIS/*", "REPLAY/MAY31/*",
 ]
 
@@ -95,6 +99,7 @@ def main():
     files = sorted(p for p in src.rglob("*")
                    if p.is_file() and wanted(p.relative_to(src).as_posix()))
     keep = {p.relative_to(src).as_posix().upper() for p in files}
+    keep.add(release.RELEASE_FILE)
     extra = sorted(p for p in out.rglob("*")
                    if p.is_file() and p.relative_to(out).parts[0].upper() != "SAVES"
                    and p.relative_to(out).as_posix().upper() not in keep) \
@@ -112,6 +117,15 @@ def main():
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(p, dst)
         print("[%d/%d] %s" % (i, len(todo), p.relative_to(src).as_posix()))
+    # The release isn't known from ZDIR.BIN and ZZDATA.BIN alone; PAL.TAG,
+    # which only the European discs have, says PAL or NTSC.
+    pal = (src / "PAL.TAG").is_file()
+    info = release.identify(None, None)
+    with open(out / release.RELEASE_FILE, "w", encoding="ascii",
+              newline="\n") as f:
+        f.write(release.release_text(
+            info._replace(label="copied from " + src.name), pal))
+    print("%s: %s" % (release.RELEASE_FILE, "PAL" if pal else "NTSC"))
     for p in extra:
         if a.prune:
             p.unlink()

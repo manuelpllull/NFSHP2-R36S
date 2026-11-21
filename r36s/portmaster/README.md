@@ -1,6 +1,6 @@
 # Need for Speed: Hot Pursuit 2
 
-A native port of the PS2 version of Need for Speed: Hot Pursuit 2 (2002), built from its decompilation. It needs your own PAL PS2 disc (SLES-50731). The package holds no game data.
+A native port of the PS2 version of Need for Speed: Hot Pursuit 2 (2002), built from its decompilation. It needs your own PS2 disc, any of these releases: USA SLUS-20362, Europe SLES-50731 (v1.00 or v2.00), Asia SLPM-65181 or Korea SLPM-67527. The European discs play as PAL, with a language choice at every start; the others play as on an NTSC PS2, in English (set `NFSHP2_REGION=PAL` in `nfshp2.cfg` to get the language choice). The package holds no game data.
 
 ## Game files
 
@@ -8,7 +8,7 @@ A native port of the PS2 version of Need for Speed: Hot Pursuit 2 (2002), built 
 2. Launch the port. The first launch installs the game from the image: about 10 minutes, with 3 GB free beside it. Progress is in `ports/nfshp2/patchlog.txt`. If it stops, launch again and it carries on.
 3. When the game runs, you can delete the `.iso`.
 
-No `python3` on your device? Install from a computer with Python 3.8 or newer, from the source repository's top folder, after copying `ZDIR.BIN` and `ZZDATA.BIN` from the disc's `NFSHP2` folder into `PS2 Files/Full Game/`:
+No `python3` on your device? Install from a computer with Python 3.8 or newer, from the source repository's top folder, after copying `ZDIR.BIN` and `ZZDATA.BIN` from the disc's `NFSHP2` folder into `PS2 Files/Full Game/` (from a European disc, `PAL.TAG` as well, if your extraction shows it; without it the game plays as NTSC):
 
 ```
 python tools/zdir_extract.py --retail --decompress

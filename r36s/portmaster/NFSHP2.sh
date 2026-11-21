@@ -29,7 +29,7 @@ export NFSHP2_ROOT="$GAMEDIR/gamedata"
 if [ ! -d "$NFSHP2_ROOT/NFSHP2/GLOBAL" ]; then
   export NFSHP2_ISO=$(find "$NFSHP2_ROOT" -maxdepth 1 -type f -iname '*.iso' | head -n 1)
   if [ -z "$NFSHP2_ISO" ]; then
-    pm_message "Copy your PAL disc image (.iso) into ports/nfshp2/gamedata. See README.md."
+    pm_message "Copy your PS2 disc image (.iso) into ports/nfshp2/gamedata. See README.md."
     sleep 10
     pm_finish
     exit 1

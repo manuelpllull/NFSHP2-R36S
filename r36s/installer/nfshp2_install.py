@@ -11,7 +11,7 @@ It reads the disc's NFSHP2/ZDIR.BIN and NFSHP2/ZZDATA.BIN inside the ISO
 
 - every named entry as it is on the disc, but for the leftovers make_card
   leaves out (the sound banks' .MSH/.MSB/.RAW, unknown entries, KEY.TXT,
-  NFS6.ICO, PAL.TAG, MARKERS/, NIS/, REPLAY/MAY31/);
+  NFS6.ICO, MARKERS/, NIS/, REPLAY/MAY31/);
 - the 30 tracks' TRACKB*.LZC expanded, under the .BUN name the game loads
   (zdir_extract.py's --decompress), and not the .LZC;
 - the sound banks' .SBK, which audio_pack.py's build_bank makes from each
@@ -22,6 +22,12 @@ hashes, the bank transcode), so the result is the computer's, file for
 file. The track expansion is lzdecompress.py's algorithm with the copies
 that cannot overlap done a slice at a time, which is the same bytes and
 several times quicker on the handheld.
+
+Every release of the game is taken: USA SLUS-20362, Europe SLES-50731
+(v1.00 and v2.00), Asia SLPM-65181 and Korea SLPM-67527. They all run one
+program and differ in their data only by a few files (see release.py).
+The disc's release goes into NFSHP2/RELEASE.TXT, and PAL.TAG, the file
+that makes the game PAL, is kept where the disc has it.
 
 The files go to <gamedata>/NFSHP2.installing and the folder takes the
 NFSHP2 name only once every file is there, so the launcher never sees half
@@ -43,6 +49,7 @@ sys.path.insert(0, str(HERE))
 
 from zdir_extract import read_names, hot_chunked, TRACK_BUN, RECORD_SIZE, SECTOR  # noqa: E402
 from audio_pack import build_bank  # noqa: E402
+import release  # noqa: E402
 
 NAMES = HERE / "zdir_names_retail.txt"
 SECTOR_ISO = 2048
@@ -52,7 +59,7 @@ CHUNK = 4 << 20
 LEAVE_OUT = [
     "TRACKS/TRACKB*.LZC",
     "*.MSH", "*.MSB", "*.RAW",
-    "UNKNOWN/*", "MANIFEST.CSV", "KEY.TXT", "NFS6.ICO", "PAL.TAG",
+    "UNKNOWN/*", "MANIFEST.CSV", "KEY.TXT", "NFS6.ICO",
     "MARKERS/*", "NIS/*", "REPLAY/MAY31/*",
 ]
 
@@ -166,6 +173,28 @@ def expand(buf):
 
 # ---------------------------------------------------------- the install
 
+def identify(iso):
+    """The disc's release, from SYSTEM.CNF's boot program and its SHA-1."""
+    cnf = iso.find("SYSTEM.CNF")
+    if cnf is None:
+        raise Failed("This disc image has no SYSTEM.CNF: it isn't a PS2 game")
+    boot = release.boot_name(iso.read(*cnf))
+    elf = iso.find(boot) if boot else None
+    if elf is None:
+        raise Failed("This disc's boot program (%s) isn't on it" % (boot or "?"))
+    sha1 = release.sha1_of(lambda off, n: iso.read(elf[0] + off, n), elf[1])
+    info = release.identify(boot, sha1)
+    if info.known:
+        say("Disc: %s" % info.label)
+    elif boot.upper() in release.BOOT_NAMES:
+        say("Disc: %s, a version the port hasn't seen (SHA-1 %s); "
+            "installing it anyway" % (boot, sha1))
+    else:
+        raise Failed("This disc boots %s, which isn't Need for Speed: Hot "
+                     "Pursuit 2 for the PS2 (%s)" % (boot, release.SUPPORTED))
+    return info
+
+
 def plan(iso):
     """What to write: (kind, rel path, disc offset, disc size, out size)."""
     zdir = iso.find("NFSHP2/ZDIR.BIN")
@@ -179,9 +208,16 @@ def plan(iso):
     entries = [struct.unpack_from("<III", data, i) for i in range(0, len(data), RECORD_SIZE)]
     names, listed = read_names(NAMES)
     hashes = {h for h, _, _ in entries}
-    if hashes != listed:
-        raise Failed("This disc isn't the PAL release (SLES-50731) the port "
-                     "was made for: its file directory differs")
+    missing, extra = release.compare_directory(hashes, names, listed)
+    if missing:
+        raise Failed("This disc lacks %d of the game's files (%s%s): it isn't "
+                     "a release of Need for Speed: Hot Pursuit 2 the port "
+                     "knows, or the image is damaged"
+                     % (len(missing), ", ".join(missing[:3]),
+                        ", ..." if len(missing) > 3 else ""))
+    if extra:
+        say("%d entries on this disc aren't in the port's list; they are "
+            "left out" % len(extra))
     lzcs = {names[h].upper()[:-4] for h in hashes if h in names and hot_chunked(names[h])}
     zz_off, zz_size = zz
     todo, banks = [], []
@@ -234,8 +270,10 @@ def write_atomic(dest, chunks):
 def install(iso_path, gamedata):
     t0 = time.time()
     iso = Iso(iso_path)
+    rel_info = identify(iso)
     say("Reading the disc's file directory...")
     todo, sbks = plan(iso)
+    pal = any(t[1].upper() == "PAL.TAG" for t in todo)
     gamedata = Path(gamedata)
     final = gamedata / "NFSHP2"
     work = gamedata / "NFSHP2.installing"
@@ -287,6 +325,8 @@ def install(iso_path, gamedata):
         write_atomic(dest, [blob])
     shutil.rmtree(str(tmp))
     say("Sound banks: %d made" % len(sbks))
+    write_atomic(work / release.RELEASE_FILE,
+                 [release.release_text(rel_info, pal).encode("ascii")])
 
     # Into place, with the saves of an earlier NFSHP2.
     if final.exists():

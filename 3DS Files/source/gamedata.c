@@ -1,6 +1,7 @@
 #include "gamedata.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static char s_root[GAMEDATA_MAX_PATH];
@@ -112,4 +113,13 @@ bool gamedata_exists(const char* rel)
     char path[GAMEDATA_MAX_PATH];
     if (!gamedata_path(rel, path, sizeof(path))) return false;
     return file_exists(path);
+}
+
+int gamedata_video_mode(void)
+{
+    const char* e = getenv("NFSHP2_REGION");
+    if (e && (e[0] == 'N' || e[0] == 'n')) return 1;
+    if (e && (e[0] == 'P' || e[0] == 'p')) return 0;
+    if (gamedata_exists("PAL.TAG")) return 0;
+    return gamedata_exists("RELEASE.TXT") ? 1 : 0;
 }
