@@ -1,0 +1,15 @@
+[package]
+name = "nfshp2-unpack"
+version = "1.0.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+description = "The installer's disc work (copies, track bundles, sound banks) in parallel"
+
+[dependencies]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

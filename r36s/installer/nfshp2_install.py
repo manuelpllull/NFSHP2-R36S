@@ -14,14 +14,12 @@ It reads the disc's NFSHP2/ZDIR.BIN and NFSHP2/ZZDATA.BIN inside the ISO
   NFS6.ICO, MARKERS/, NIS/, REPLAY/MAY31/);
 - the 30 tracks' TRACKB*.LZC expanded, under the .BUN name the game loads
   (zdir_extract.py's --decompress), and not the .LZC;
-- the sound banks' .SBK, which audio_pack.py's build_bank makes from each
+- the sound banks' .SBK, what audio_pack.py's build_bank makes from each
   .MSH/.MSB pair.
 
-The tools' own code does the work where it can (the names and their
-hashes, the bank transcode), so the result is the computer's, file for
-file. The track expansion is lzdecompress.py's algorithm with the copies
-that cannot overlap done a slice at a time, which is the same bytes and
-several times quicker on the handheld.
+This script reads the disc and plans the install; nfshp2-unpack (unpack/)
+writes the files, the copies, expansions and banks in parallel, the same
+bytes as the computer's tools, file for file.
 
 Every release of the game is taken: USA SLUS-20362, Europe SLES-50731
 (v1.00 and v2.00), Asia SLPM-65181 and Korea SLPM-67527. They all run one
@@ -40,6 +38,7 @@ import fnmatch
 import os
 import shutil
 import struct
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -48,12 +47,11 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 from zdir_extract import read_names, hot_chunked, TRACK_BUN, RECORD_SIZE, SECTOR  # noqa: E402
-from audio_pack import build_bank  # noqa: E402
 import release  # noqa: E402
 
 NAMES = HERE / "zdir_names_retail.txt"
 SECTOR_ISO = 2048
-CHUNK = 4 << 20
+UNPACK = "nfshp2-unpack"          # unpack/: the copies, bundles and banks in parallel
 
 # make_card.py's LEAVE_OUT, which the card was tested with.
 LEAVE_OUT = [
@@ -129,46 +127,6 @@ class Iso:
     def read(self, offset, size):
         self.f.seek(offset)
         return self.f.read(size)
-
-
-# ------------------------------------------------------- the expansion
-
-def expand(buf):
-    """lzdecompress.decompress, with a copy that cannot overlap itself done
-    as one slice: the same bytes."""
-    if len(buf) < 16 or buf[:4] != b"COMP":
-        raise Failed("a track bundle isn't a COMP container")
-    method, = struct.unpack_from("<H", buf, 6)
-    out_size, total = struct.unpack_from("<II", buf, 8)
-    if method == 1:
-        return bytes(buf[16:total])
-    end, src, ctrl = total, 16, 1
-    out = bytearray()
-    append = out.append
-    while src != end:
-        if ctrl == 1:
-            ctrl = buf[src] | 0x10000 | (buf[src + 1] << 8)
-            src += 2
-        n = 16 if src <= end - 0x20 else 1
-        for _ in range(n):
-            if ctrl & 1:
-                b0 = buf[src]
-                dist = ((b0 & 0xF0) << 4) | buf[src + 1]
-                length = 3 + (b0 & 0x0F)
-                src += 2
-                p = len(out) - dist
-                if dist >= length:
-                    out += out[p:p + length]
-                else:
-                    for k in range(length):
-                        append(out[p + k])
-            else:
-                append(buf[src])
-                src += 1
-            ctrl >>= 1
-    if len(out) != out_size:
-        raise Failed("a track bundle expanded to %d bytes, not %d" % (len(out), out_size))
-    return bytes(out)
 
 
 # ---------------------------------------------------------- the install
@@ -290,41 +248,7 @@ def install(iso_path, gamedata):
     total = sum(o for _, _, _, _, o in todo) or 1
     say("%d files, %.1f GB to write" % (len(todo) + len(sbks), total / 1e9))
 
-    written, last = 0, -1
-    for i, (kind, rel, off, size, out_size) in enumerate(todo, 1):
-        dest = work / rel
-        if not done_already(dest, out_size):
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            if kind == "copy":
-                def chunks(off=off, size=size):
-                    left = size
-                    while left:
-                        n = min(CHUNK, left)
-                        yield iso.read(off + size - left, n)
-                        left -= n
-                write_atomic(dest, chunks())
-            else:
-                say("Unpacking %s..." % rel.split("/")[-1])
-                write_atomic(dest, [expand(iso.read(off, size))])
-        written += out_size
-        pct = written * 100 // total
-        if pct != last and (pct % 5 == 0 or kind == "expand"):
-            say("[%3d%%] %s" % (pct, rel[-50:]))
-            last = pct
-
-    tmp = work / "_banks"
-    tmp.mkdir(exist_ok=True)
-    for rel, off, size, msb_off, msb_size in sbks:
-        stem = rel.split("/")[-1][:-4]
-        dest = work / "SOUND" / (stem + ".SBK")
-        msh = tmp / (stem + ".MSH")
-        msh.write_bytes(iso.read(off, size))
-        (tmp / (stem + ".MSB")).write_bytes(iso.read(msb_off, msb_size))
-        name, blob, _ = build_bank(str(msh))
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        write_atomic(dest, [blob])
-    shutil.rmtree(str(tmp))
-    say("Sound banks: %d made" % len(sbks))
+    unpack(iso_path, work, todo, sbks, total, done_already)
     write_atomic(work / release.RELEASE_FILE,
                  [release.release_text(rel_info, pal).encode("ascii")])
 
@@ -340,6 +264,47 @@ def install(iso_path, gamedata):
         shutil.rmtree(str(old))
     os.replace(str(work), str(final))
     say("Done in %d min %02d s" % divmod(int(time.time() - t0), 60))
+
+
+def unpack(iso_path, work, todo, sbks, total, done_already):
+    """The copies, bundles and banks, through nfshp2-unpack."""
+    helper = HERE / UNPACK
+    jobs = []
+    for kind, rel, off, size, out_size in todo:
+        if done_already(work / rel, out_size):
+            continue
+        if kind == "copy":
+            jobs.append("copy\t%d\t%d\t%s" % (off, size, rel))
+        else:
+            jobs.append("expand\t%d\t%d\t%d\t%s" % (off, size, out_size, rel))
+    for rel, off, size, msb_off, msb_size in sbks:
+        stem = rel.split("/")[-1][:-4]
+        jobs.append("bank\t%d\t%d\t%d\t%d\t%s\tSOUND/%s.SBK"
+                    % (off, size, msb_off, msb_size, stem, stem))
+    os.chmod(str(helper), 0o755)
+    p = subprocess.Popen([str(helper), str(iso_path), str(work)],
+                         stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                         universal_newlines=True)
+    p.stdin.write("\n".join(jobs) + "\n")
+    p.stdin.close()
+    written = sum(o for _, rel, _, _, o in todo if done_already(work / rel, o))
+    last, error = -1, None
+    for line in p.stdout:
+        f = line.rstrip("\n").split("\t")
+        if f[0] == "done":
+            written += int(f[1])
+            pct = written * 100 // total
+            if pct != last and pct % 5 == 0:
+                say("[%3d%%] %s" % (pct, f[2][-50:]))
+                last = pct
+        elif f[0] == "error":
+            error = f[1]
+    code = p.wait()
+    if error:
+        raise Failed(error)
+    if code:
+        raise Failed("The unpacker stopped (%d)" % code)
+    say("Sound banks: %d made" % len(sbks))
 
 
 def main():

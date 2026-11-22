@@ -38,10 +38,15 @@ cp "$here/portmaster/nfshp2.cfg" "$port/nfshp2/nfshp2.cfg"
 # and name list it does the work with.
 mkdir -p "$port/nfshp2/tools"
 cp "$here/installer/patchscript" "$here/installer/nfshp2_install.py" "$port/nfshp2/tools/"
-for f in zdir_extract.py bhash.py lzdecompress.py audio_pack.py audio_convert.py release.py; do
+for f in zdir_extract.py bhash.py lzdecompress.py release.py; do
     cp "$repo/tools/$f" "$port/nfshp2/tools/$f"
 done
 cp "$repo/docs/zdir_names_retail.txt" "$port/nfshp2/tools/"
+# The unpacker that writes the files (installer/unpack/build.sh).
+unpack="$here/build/armhf/nfshp2-unpack"
+[ -f "$unpack" ] || { echo "no $unpack: run r36s/installer/unpack/build.sh first" >&2; exit 1; }
+cp "$unpack" "$port/nfshp2/tools/"
+chmod 755 "$port/nfshp2/tools/nfshp2-unpack"
 
 # The binary, stripped: crash reports' addresses still name lines through
 # the unstripped build/armhf/nfshp2.armhf.
