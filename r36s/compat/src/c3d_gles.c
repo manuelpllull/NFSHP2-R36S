@@ -134,6 +134,7 @@ static bool s_keyStale = true;
 
 // GL_VERSION, read once at C3D_Init.
 static char s_glVersion[128];
+static char s_glRenderer[128];
 
 // NFSHP2_DRAWSTATS' pass number: a clear or a target change starts a pass.
 static u32 s_dsPass;
@@ -203,7 +204,8 @@ bool C3D_Init(size_t cmdBufSize)
         s_extDepth24 = has_ext("GL_OES_depth24");
         s_extPacked = has_ext("GL_OES_packed_depth_stencil");
         snprintf(s_glVersion, sizeof s_glVersion, "%s", (const char*)glGetString(GL_VERSION));
-        printf("R36S: GL %s, %s\n", s_glVersion, (const char*)glGetString(GL_RENDERER));
+        snprintf(s_glRenderer, sizeof s_glRenderer, "%s", (const char*)glGetString(GL_RENDERER));
+        printf("R36S: GL %s, %s\n", s_glVersion, s_glRenderer);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glDisable(GL_DITHER);
@@ -2501,6 +2503,15 @@ static bool inst_on(void)
         s_instMode = e != NULL && e[0] != '\0' ? atoi(e) : 1;
         if (s_instMode && strstr(s_glVersion, "OpenGL ES 3") == NULL) {
             printf("R36S: grouped draws off: \"%s\" is not GLES 3\n", s_glVersion);
+            s_instMode = 0;
+        }
+        // Midgard (Mali-T6xx to T8xx; the RG552's T860) draws grouped
+        // scenery wrong: ground and road vanish and rocks stretch into
+        // spikes, with the instance data aligned to 64 bytes too. Its CPU
+        // is fast enough that grouping doesn't help there (RG552: 33-44 fps
+        // without, 27-34 with). NFSHP2_INSTANCE=1 still turns it on.
+        if (s_instMode && (e == NULL || e[0] == '\0') && strstr(s_glRenderer, "Mali-T") != NULL) {
+            printf("R36S: grouped draws off: %s draws them wrong\n", s_glRenderer);
             s_instMode = 0;
         }
         if (s_instMode) {
