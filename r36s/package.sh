@@ -55,8 +55,12 @@ MSYS_NO_PATHCONV=1 docker run --rm -v "$hereW:/r36s" "${IMAGE:-nfshp2-r36s-build
     /r36s/build/armhf/nfshp2.armhf
 
 # Line endings: PortMaster's scripts must be LF (CRLF gives a black screen).
+# A Windows checkout (core.autocrlf) turns the sources into CRLF, so the
+# package's copies are made LF here, then checked.
 for f in "$port/NFSHP2.sh" "$port/port.json" "$port/README.md" "$port/gameinfo.xml" \
+         "$port/nfshp2/nfshp2.cfg" "$port/nfshp2/gamedata/README.txt" \
          "$port/nfshp2/tools/patchscript" "$port/nfshp2/tools/"*.py; do
+    sed -i 's/\r$//' "$f"
     if grep -q "$(printf '\r')" "$f"; then echo "CRLF in $f" >&2; exit 1; fi
 done
 

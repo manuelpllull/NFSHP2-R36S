@@ -47,7 +47,7 @@ It is the PS2 game itself, not an emulator or a remake: the code was reverse-eng
 
 If your device firmware does not have `python3`, or you prefer faster extraction:
 
-1. Copy `ZDIR.BIN` and `ZZDATA.BIN` from your disc's `NFSHP2/` folder into `PS2 Files/Full Game/`. The extraction keeps `PAL.TAG`, which only the European discs have, and `make_card.py` writes `RELEASE.TXT` with PAL or NTSC from it.
+1. Copy `ZDIR.BIN` and `ZZDATA.BIN` from your disc's `NFSHP2/` folder into `PS2 Files/Full Game/`. The extraction keeps `PAL.TAG` where the disc has it, and `make_card.py` writes `RELEASE.TXT` with the release's name.
 2. From the repository root on your computer (requires Python 3.8+):
    ```bash
    python tools/zdir_extract.py --retail --decompress
@@ -109,7 +109,7 @@ You can customize the port by creating or editing `ports/nfshp2/nfshp2.cfg` with
 | `NFSHP2_ASPECT` | `0` or `1` | `1` | `1` stretches view to screen edges; `0` forces pillarboxed 4:3 PS2 ratio |
 | `NFSHP2_DPAD_STICK` | `0` or `1` | `0` | Launch with D-Pad and Left Analog Stick steering swapped |
 | `NFSHP2_GLYPHS` | `ps2`, `xbox`, `nintendo` | `nintendo` | Button prompt glyph style on screen |
-| `NFSHP2_REGION` | `PAL` or `NTSC` | the disc's | Overrides the disc's video mode: `PAL` gives the language choice at every start and the Languages item in Options; `NTSC` plays in English without them |
+| `NFSHP2_REGION` | `NTSC` | unset | Turns the language choice off: English, with no language screen at start and no Languages item in Options. Every release has the choice by default |
 | `NFSHP2_RENDER_SCALE` | `0.25` to `1.0` | `1.0` | Render target scale factor (e.g. `0.75` for 75% internal resolution) |
 
 ---

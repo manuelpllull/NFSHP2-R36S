@@ -57,11 +57,12 @@ The PS2 game picks its video mode with `bFileExists("PAL.TAG")`.
 - **NTSC** plays in English, and Options hides the Languages item
   (`bscreens.c`).
 
-The port does the same: `gamedata_video_mode()`. The installer and
-`make_card.py` keep `PAL.TAG` and write `RELEASE.TXT`. An install with
-neither file is from before this support, when only the PAL disc
-installed, so it stays PAL. `NFSHP2_REGION=PAL` or `NTSC` in `nfshp2.cfg`
-overrides the mode, for example to give a USA disc the language choice.
+Every release's disc holds the same six languages' files, and only
+`PAL.TAG` makes the game ask for one. The port is PAL for every release
+(`gamedata_video_mode()`), so the USA, Asian and Korean discs get the
+language screen and the Languages item too. `NFSHP2_REGION=NTSC` in
+`nfshp2.cfg` turns the choice off. The installer and `make_card.py` still
+keep `PAL.TAG` where the disc has it and write `RELEASE.TXT`.
 
 The port keeps its own frame timing, so 50 against 60 Hz changes nothing
 else. Saves are the port's own, in `NFSHP2/SAVES`, and the same for every
@@ -84,11 +85,11 @@ the table above does. Every ZDIR entry was compared with v1.00's, unpacked:
 
 Full installs of USA, Korea and Europe v1.00 were run headless under QEMU
 (`r36s/run_qemu.sh`, `NFSHP2_INPUT='300:A*60/90'`):
-- **USA and Korea** log `video mode NTSC`. They go from boot straight to the
-  title with no language screen, then to the main menu and a Cops On race
-  (track 14 and track 36), which runs to the time limit without a crash.
+- **USA and Korea** were run when the port still played NTSC discs as NTSC:
+  boot straight to the title, then the main menu and a Cops On race (track
+  14 and track 36), which ran to the time limit without a crash. Since then
+  they open on the language screen like the European disc (not re-run).
 - **Europe v1.00** logs `video mode PAL` and opens on "Language Options Pre
-  FE" as before.
-- **An install without `RELEASE.TXT`** (one from before this) boots as PAL.
+  FE".
 
 Not yet played on a handheld from the USA, Asia, Korea or v2.00 discs.

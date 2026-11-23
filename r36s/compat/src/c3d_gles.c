@@ -3698,6 +3698,15 @@ void C3D_FrameEnd(u8 flags)
 
 void C3D_FrameEndHook(void (*hook)(void*), void* param) { (void)hook; (void)param; }
 void C3D_FrameSync(void) {}
+
+void r36s_wait_track_rendering(void)
+{
+    const char* enabled = getenv("NFSHP2_TRACK_SYNC");
+    if (enabled && strcmp(enabled, "0") == 0) return;
+    rgl_direct_begin();
+    glFinish();
+    rgl_direct_end();
+}
 u32 C3D_FrameCounter(int id) { (void)id; return s.frames; }
 float C3D_GetDrawingTime(void) { return s.drawMs; }
 float C3D_GetProcessingTime(void) { return s.procMs; }

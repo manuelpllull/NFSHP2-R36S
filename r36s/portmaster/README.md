@@ -7,7 +7,7 @@ You need your own copy of the game: a PAL PS2 disc (SLES-50731). Make an `.iso` 
 1. Launch the port. The first launch installs the game from the image: about 10 minutes, with 3 GB free beside it. Progress is in `ports/nfshp2/patchlog.txt`. If it stops, launch again and it carries on.
 2. When the game runs, you can delete the `.iso`.
 
-No `python3` on your device? Install from a computer with Python 3.8 or newer, from the source repository's top folder, after copying `ZDIR.BIN` and `ZZDATA.BIN` from the disc's `NFSHP2` folder into `PS2 Files/Full Game/` (from a European disc, `PAL.TAG` as well, if your extraction shows it; without it the game plays as NTSC):
+No `python3` on your device? Install from a computer with Python 3.8 or newer, from the source repository's top folder, after copying `ZDIR.BIN` and `ZZDATA.BIN` from the disc's `NFSHP2` folder into `PS2 Files/Full Game/` (and `PAL.TAG` as well, if your extraction shows it):
 
 ```
 python tools/zdir_extract.py --retail --decompress

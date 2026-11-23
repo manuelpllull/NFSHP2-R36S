@@ -452,6 +452,9 @@ SwkbdResult swkbdGetResult(SwkbdState* swkbd);
 // The directory that stands for the 3DS's SD card root: "sdmc:/X" opens
 // <root>/X. Set from NFSHP2_ROOT, else the working directory.
 const char* r36s_sdmc_root(void);
+
+// Drain queued GLES work before the race frees its render resources.
+void r36s_wait_track_rendering(void);
 // "sdmc:/..." to a host path, in `out`; any other path is copied as it is.
 const char* r36s_path(const char* in, char* out, size_t n);
 

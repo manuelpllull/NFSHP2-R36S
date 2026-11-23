@@ -120,6 +120,8 @@ int gamedata_video_mode(void)
     const char* e = getenv("NFSHP2_REGION");
     if (e && (e[0] == 'N' || e[0] == 'n')) return 1;
     if (e && (e[0] == 'P' || e[0] == 'p')) return 0;
-    if (gamedata_exists("PAL.TAG")) return 0;
-    return gamedata_exists("RELEASE.TXT") ? 1 : 0;
+    // Every release's disc carries the European language files; only PAL.TAG
+    // makes the PS2 game ask for one. The port asks on every release, so the
+    // USA and Asian discs get the language screen and Options' Languages item.
+    return 0;
 }

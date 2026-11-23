@@ -43,8 +43,8 @@ bool gamedata_exists(const char* rel);
 
 // The game's VIDEO_MODE for this install: 0 PAL, 1 NTSC. The PS2 game is
 // PAL when the disc has PAL.TAG (InitDisplaySystem's bFileExists), which
-// only the European discs do. An install with RELEASE.TXT and no PAL.TAG is
-// from an NTSC disc (USA, Asia, Korea; tools/release.py). One with neither
-// predates the other releases' support, when only the PAL disc installed,
-// so it is PAL. NFSHP2_REGION=PAL or NTSC in the environment overrides it.
+// only the European discs do, and only PAL asks for a language. Every
+// release's disc holds the same language files, so the port is PAL for all
+// of them and the language choice is always there. NFSHP2_REGION=NTSC in the
+// environment turns it off: English, and no Languages item in Options.
 int gamedata_video_mode(void);

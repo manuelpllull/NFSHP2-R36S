@@ -5770,10 +5770,14 @@ extern u8 __C3D_Context[];
 
 static void waitRenderingDone(void)
 {
+#ifdef NFSHP2_R36S
+    r36s_wait_track_rendering();
+#else
     gxCmdQueue_s* q = (gxCmdQueue_s*)(void*)__C3D_Context;
 
     if (!gxCmdQueueWait(q, 500000000LL))
         logLine("race: the GPU not done in 0.5 s at the track's unload");
+#endif
 }
 
 // gTrackFlowViewUnloadFn: the race's view lets go as the Begin of
@@ -5843,7 +5847,13 @@ static bool raceAttachTrack(void)
     bakes   = g_track.bakes;
     uploads = g_track.uploads;
     frames  = g_track.frameUploads;
+#ifdef NFSHP2_R36S
+    logPrintf("race: preparing track render resources\n");
+#endif
     trackview_prepare(&g_track);
+#ifdef NFSHP2_R36S
+    logPrintf("race: track render resources prepared\n");
+#endif
     logLine("race: prepared in %.0f ms after %llu ms of reads and %d "
             "frames' wait (%d still streaming): %d models, %d bakes, %d "
             "uploads (%d past the models', %d left out, %lu KB), %d "
